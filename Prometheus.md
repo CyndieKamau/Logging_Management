@@ -1,5 +1,8 @@
 # Configuration and use of Prometheus Logging tool
 
+
+# **STEP ONE:**
+
 ## 1. Create a directory to store all files for easier management
 
 ```
@@ -30,4 +33,54 @@ Saving to: ‘prometheus-2.41.0.linux-amd64.tar.gz’
 
 
 ```
+
+## 3. Create a parent directory to store all Prometheus components
+
+```
+(base) [root@hpc01 logs]# mkdir prometheus
+(base) [root@hpc01 logs]# cd prometheus/
+(base) [root@hpc01 prometheus]# 
+
+```
+
+## 4. Use `tar` to extract prometheus found in the previously created `logs` directory;
+
+```
+(base) [root@hpc01 prometheus]# tar -xvzf ../prometheus-2.41.0.linux-amd64.tar.gz
+prometheus-2.41.0.linux-amd64/
+prometheus-2.41.0.linux-amd64/consoles/
+prometheus-2.41.0.linux-amd64/consoles/node-disk.html
+prometheus-2.41.0.linux-amd64/consoles/node-cpu.html
+prometheus-2.41.0.linux-amd64/consoles/index.html.example
+prometheus-2.41.0.linux-amd64/consoles/node-overview.html
+prometheus-2.41.0.linux-amd64/consoles/node.html
+prometheus-2.41.0.linux-amd64/consoles/prometheus.html
+prometheus-2.41.0.linux-amd64/consoles/prometheus-overview.html
+prometheus-2.41.0.linux-amd64/console_libraries/
+prometheus-2.41.0.linux-amd64/console_libraries/prom.lib
+prometheus-2.41.0.linux-amd64/console_libraries/menu.lib
+prometheus-2.41.0.linux-amd64/NOTICE
+prometheus-2.41.0.linux-amd64/prometheus
+prometheus-2.41.0.linux-amd64/LICENSE
+prometheus-2.41.0.linux-amd64/prometheus.yml
+prometheus-2.41.0.linux-amd64/promtool
+(base) [root@hpc01 prometheus]# 
+
+```
+
+## 5. Verify Installation by checking the Prometheus version;
+
+```
+(base) [root@hpc01 prometheus]# ls
+prometheus-2.41.0.linux-amd64
+(base) [root@hpc01 prometheus]# cd prometheus-2.41.0.linux-amd64/
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# ./prometheus --version
+prometheus, version 2.41.0 (branch: HEAD, revision: c0d8a56c69014279464c0e15d8bfb0e153af0dab)
+  build user:       root@d20a03e77067
+  build date:       20221220-10:40:45
+  go version:       go1.19.4
+  platform:         linux/amd64
+
+```
+
 
