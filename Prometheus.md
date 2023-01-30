@@ -218,3 +218,203 @@ I look for the location of the `node_exporter.service` file;
 ./etc/systemd/system/default.target.wants/node_exporter.service
 ./usr/lib/systemd/system/node_exporter.service
 ```
+
+Aand I had to do some reconfigurations;
+
+1. I checked the current Node Exporter version that was running;
+
+```
+(base) [root@hpc01 node_exporter]# node_exporter --version
+node_exporter, version 1.3.1 (branch: HEAD, revision: a2321e7b940ddcff26873612bccdf7cd4c42b6b6)
+  build user:       root@243aafa5525c
+  build date:       20211205-11:09:49
+  go version:       go1.17.3
+  platform:         linux/amd64
+
+```
+
+2. I found the previous `node_exporter` version executable file in `/usr/local/bin` ;
+
+```
+(base) [root@hpc01 opt]# cd /usr/local/bin/
+(base) [root@hpc01 bin]# ls
+2to3-3.7          gcov-dump         gdalwarp       prometheus          stag-findsubtree.pl      x86_64-pc-linux-gnu-g++
+alertmanager      gcov-tool         Genesis        promtail            stag-flatten.pl          x86_64-pc-linux-gnu-gcc
+amtool            gdaladdo          Genesis.jar    promtool            stag-grep.pl             x86_64-pc-linux-gnu-gcc-7.3.0
+aws               gdalbuildvrt      gnmanalyse     prove               stag-handle.pl           x86_64-pc-linux-gnu-gcc-9.2.0
+aws_completer     gdal-config       gnmmanage      pydoc3.7            stag-itext2simple.pl     x86_64-pc-linux-gnu-gcc-ar
+c++               gdal_contour      idle3.7        python3.7           stag-itext2sxpr.pl       x86_64-pc-linux-gnu-gcc-nm
+ccmake            gdaldem           loki           python3.7m          stag-itext2xml.pl        x86_64-pc-linux-gnu-gcc-ranlib
+cmake             gdalenhance       nearblack      python3.7m-config   stag-join.pl             xml_grep
+cpack             gdal_grid         newrelic       pyvenv-3.7          stag-merge.pl            xml_merge
+cpp               gdalinfo          node_exporter  R                   stag-mogrify.pl          xml_pp
+...
+```
+
+3. I removed the previous Node Exporter logical link first;
+
+```
+(base) [root@hpc01 bin]# rm node_exporter 
+rm: remove regular file ‘node_exporter’? yes
+
+```
+
+4. I then created the logical link to the current node_exporter version;
+
+```
+(base) [root@hpc01 bin]# cd /home/cyndiekamau/logs/prometheus/node_exporter/
+(base) [root@hpc01 node_exporter]# ln -s node_exporter-1.5.0.linux-amd64/ /usr/local/bin/node_exporter
+
+```
+The logical link allows us to create systemd unit file without needing to update it each time we upgrade node_exporter.
+
+5. I then found 2 `node_exporter.service` files already configured, in `/etc/systemd/system` directory;
+
+In `multi-user.target.wants ` and `default.target.wants` directories;
+
+```
+(base) [root@hpc01 system]# cd multi-user.target.wants/
+(base) [root@hpc01 multi-user.target.wants]# ls
+abrt-ccpp.service          ipmievd.service         nginx.service           slurmctld.service
+abrtd.service              ipmi.service            node_exporter.service   slurmdbd.service
+....
+```
+
+```
+(base) [root@hpc01 system]# cd default.target.wants/
+(base) [root@hpc01 default.target.wants]# ls
+node_exporter.service  systemd-readahead-collect.service  systemd-readahead-replay.service
+
+```
+
+Here's the content of the `node_exporter.service` files;
+
+```
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecStart=/usr/local/bin/node_exporter/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+
+```
+
+5. I reloaded the systemd daemon;
+
+```
+(base) [root@hpc01 multi-user.target.wants]# systemctl daemon-reload
+(base) [root@hpc01 multi-user.target.wants]# 
+```
+
+6. I then restarted the Node Explorer daemon;
+
+```
+(base) [root@hpc01 multi-user.target.wants]# systemctl restart node_exporter
+(base) [root@hpc01 multi-user.target.wants]# systemctl status node_exporter
+● node_exporter.service - Node Exporter
+   Loaded: loaded (/usr/lib/systemd/system/node_exporter.service; enabled; vendor preset: disabled)
+   Active: active (running) since Mon 2023-01-30 10:55:33 EAT; 12s ago
+ Main PID: 52343 (node_exporter)
+    Tasks: 6
+   Memory: 3.6M
+   CGroup: /system.slice/node_exporter.service
+           └─52343 /usr/local/bin/node_exporter/node_exporter
+
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.376Z caller=node_exporter.go:117 level=info colle...l_zone
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.376Z caller=node_exporter.go:117 level=info collector=time
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.376Z caller=node_exporter.go:117 level=info colle...=timex
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.376Z caller=node_exporter.go:117 level=info colle...queues
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.376Z caller=node_exporter.go:117 level=info colle...=uname
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.376Z caller=node_exporter.go:117 level=info colle...vmstat
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.377Z caller=node_exporter.go:117 level=info collector=xfs
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.377Z caller=node_exporter.go:117 level=info collector=zfs
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.377Z caller=tls_config.go:232 level=info msg="Lis...]:9100
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.377Z caller=tls_config.go:235 level=info msg="TLS...]:9100
+
+```
+
+7. I checked if it was listening on port 9100;
+
+```
+(base) [root@hpc01 multi-user.target.wants]# journalctl -eu node_exporter | grep Listening
+Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.377Z caller=tls_config.go:232 level=info msg="Listening on" address=[::]:9100
+
+```
+8. I tested by doing a manual scraping on port 9100;
+
+```
+(base) [root@hpc01 multi-user.target.wants]# curl localhost:9100/metrics
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 0
+go_gc_duration_seconds{quantile="0.25"} 0
+go_gc_duration_seconds{quantile="0.5"} 0
+go_gc_duration_seconds{quantile="0.75"} 0
+go_gc_duration_seconds{quantile="1"} 0
+go_gc_duration_seconds_sum 0
+go_gc_duration_seconds_count 0
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 7
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.19.3"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 1.440536e+06
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+# TYPE go_memstats_alloc_bytes_total counter
+....
+# TYPE node_cooling_device_cur_state gauge
+node_cooling_device_cur_state{name="0",type="Processor"} 0
+node_cooling_device_cur_state{name="1",type="Processor"} 0
+node_cooling_device_cur_state{name="10",type="Processor"} 0
+node_cooling_device_cur_state{name="11",type="Processor"} 0
+node_cooling_device_cur_state{name="12",type="Processor"} 0
+node_cooling_device_cur_state{name="13",type="Processor"} 0
+node_cooling_device_cur_state{name="14",type="Processor"} 0
+node_cooling_device_cur_state{name="15",type="Processor"} 0
+node_cooling_device_cur_state{name="16",type="Processor"} 0
+node_cooling_device_cur_state{name="17",type="Processor"} 0
+.....
+# TYPE node_cooling_device_max_state gauge
+node_cooling_device_max_state{name="0",type="Processor"} 10
+node_cooling_device_max_state{name="1",type="Processor"} 3
+node_cooling_device_max_state{name="10",type="Processor"} 3
+node_cooling_device_max_state{name="11",type="Processor"} 3
+node_cooling_device_max_state{name="12",type="Processor"} 3
+node_cooling_device_max_state{name="13",type="Processor"} 3
+node_cooling_device_max_state{name="14",type="Processor"} 3
+node_cooling_device_max_state{name="15",type="Processor"} 3
+.....
+# HELP node_cpu_frequency_max_hertz Maximum cpu thread frequency in hertz.
+# TYPE node_cpu_frequency_max_hertz gauge
+node_cpu_frequency_max_hertz{cpu="0"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="1"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="10"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="11"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="12"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="13"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="14"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="15"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="16"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="17"} 2.3e+09
+node_cpu_frequency_max_hertz{cpu="18"} 2.3e+09
+...
+# HELP node_filesystem_files Filesystem total file nodes.
+# TYPE node_filesystem_files gauge
+node_filesystem_files{device="/dev/mapper/centos-home",fstype="xfs",mountpoint="/home"} 2.09717248e+08
+node_filesystem_files{device="/dev/mapper/centos-root",fstype="xfs",mountpoint="/"} 2.62144e+08
+node_filesystem_files{device="/dev/mapper/centos-tmp",fstype="xfs",mountpoint="/tmp"} 2.097152e+08
+node_filesystem_files{device="/dev/mapper/centos-var",fstype="xfs",mountpoint="/var"} 4.194304e+08
+node_filesystem_files{device="/dev/mapper/hpc1-scratch",fstype="ext4",mountpoint="/scratch"} 9.8304e+07
+node_filesystem_files{device="/dev/mapper/hpc2-apps",fstype="ext4",mountpoint="/opt"} 2.34881024e+08
+node_filesystem_files{device="/dev/mapper/hpc2-data",fstype="ext4",mountpoint="/data"} 1.14089984e+08
+.....
+```
