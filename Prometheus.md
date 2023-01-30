@@ -203,3 +203,18 @@ Hint: Some lines were ellipsized, use -l to show in full.
 
 ```
 I'll have to remove that config file.
+
+I look for the location of the `node_exporter.service` file;
+
+```
+(base) [root@hpc01 /]# find . -name node_exporter.service
+./sys/fs/cgroup/devices/system.slice/node_exporter.service
+./sys/fs/cgroup/pids/system.slice/node_exporter.service
+./sys/fs/cgroup/blkio/system.slice/node_exporter.service
+./sys/fs/cgroup/memory/system.slice/node_exporter.service
+./sys/fs/cgroup/cpu, cpuacct/system.slice/node_exporter.service
+./sys/fs/cgroup/systemd/system.slice/node_exporter.service
+./etc/systemd/system/multi-user.target.wants/node_exporter.service
+./etc/systemd/system/default.target.wants/node_exporter.service
+./usr/lib/systemd/system/node_exporter.service
+```
