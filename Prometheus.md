@@ -221,7 +221,7 @@ I look for the location of the `node_exporter.service` file;
 
 Aand I had to do some reconfigurations;
 
-1. I checked the current Node Exporter version that was running;
+## 1. I checked the current Node Exporter version that was running;
 
 ```
 (base) [root@hpc01 node_exporter]# node_exporter --version
@@ -233,7 +233,7 @@ node_exporter, version 1.3.1 (branch: HEAD, revision: a2321e7b940ddcff26873612bc
 
 ```
 
-2. I found the previous `node_exporter` version executable file in `/usr/local/bin` ;
+## 2. I found the previous `node_exporter` version executable file in `/usr/local/bin` ;
 
 ```
 (base) [root@hpc01 opt]# cd /usr/local/bin/
@@ -251,7 +251,7 @@ cpp               gdalinfo          node_exporter  R                   stag-mogr
 ...
 ```
 
-3. I removed the previous Node Exporter logical link first;
+## 3. I removed the previous Node Exporter logical link first;
 
 ```
 (base) [root@hpc01 bin]# rm node_exporter 
@@ -259,7 +259,7 @@ rm: remove regular file ‘node_exporter’? yes
 
 ```
 
-4. I then created the logical link to the current node_exporter version;
+## 4. I then created the logical link to the current node_exporter version;
 
 ```
 (base) [root@hpc01 bin]# cd /home/cyndiekamau/logs/prometheus/node_exporter/
@@ -268,7 +268,7 @@ rm: remove regular file ‘node_exporter’? yes
 ```
 The logical link allows us to create systemd unit file without needing to update it each time we upgrade node_exporter.
 
-5. I then found 2 `node_exporter.service` files already configured, in `/etc/systemd/system` directory;
+## 5. I then found 2 `node_exporter.service` files already configured, in `/etc/systemd/system` directory;
 
 In `multi-user.target.wants ` and `default.target.wants` directories;
 
@@ -305,14 +305,14 @@ WantedBy=multi-user.target
 
 ```
 
-5. I reloaded the systemd daemon;
+## 6. I reloaded the systemd daemon;
 
 ```
 (base) [root@hpc01 multi-user.target.wants]# systemctl daemon-reload
 (base) [root@hpc01 multi-user.target.wants]# 
 ```
 
-6. I then restarted the Node Explorer daemon;
+## 7. I then restarted the Node Explorer daemon;
 
 ```
 (base) [root@hpc01 multi-user.target.wants]# systemctl restart node_exporter
@@ -339,14 +339,14 @@ Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.377
 
 ```
 
-7. I checked if it was listening on port 9100;
+## 8. I checked if it was listening on port 9100;
 
 ```
 (base) [root@hpc01 multi-user.target.wants]# journalctl -eu node_exporter | grep Listening
 Jan 30 10:55:33 hpc01.icipe.org node_exporter[52343]: ts=2023-01-30T07:55:33.377Z caller=tls_config.go:232 level=info msg="Listening on" address=[::]:9100
 
 ```
-8. I tested by doing a manual scraping on port 9100;
+## 9. I tested by doing a manual scraping on port 9100;
 
 ```
 (base) [root@hpc01 multi-user.target.wants]# curl localhost:9100/metrics
@@ -419,17 +419,17 @@ node_filesystem_files{device="/dev/mapper/hpc2-data",fstype="ext4",mountpoint="/
 .....
 ```
 
-9. I now configured Prometheus manual scraping;
+## 10. I now configured Prometheus manual scraping;
 
 As we want to be able to scrape many hosts, we’ll put the list of targets to scrape in a separate file to make it easier to manage.
 
-First I created a new directory called `targets.d` in `/etc/prometheus`;
+### First I created a new directory called `targets.d` in `/etc/prometheus`;
 
 ```
 (base) [root@hpc01 /]# mkdir /etc/prometheus/targets.d
 ```
 
-I then created a new file called `node.yml` with the following contents;
+### I then created a new file called `node.yml` with the following contents;
 
 ```
 (base) [root@hpc01 targets.d]# cat node.yml 
@@ -438,7 +438,7 @@ I then created a new file called `node.yml` with the following contents;
 (base) [root@hpc01 targets.d]# 
 
 ```
-I then edited the `prometheus.yml` file under `/home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64` directory, where I downloaded prometheus;
+### I then edited the `prometheus.yml` file under `/home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64` directory, where I downloaded prometheus;
 
 ```
 global:
@@ -478,7 +478,7 @@ rule_files:
 
 ```
 
-I then cross checked the YAML file for errors using Prometheus' `promtool`;
+### I then cross checked the YAML file for errors using Prometheus' `promtool`;
 
 ```
 (base) [root@hpc01 prometheus-2.41.0.linux-amd64]# /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/promtool check config /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml 
@@ -488,7 +488,7 @@ Checking /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometh
 
 ```
 
-So line 23 on `labels` is not allowed, I removed it. I cross checked again;
+### So line 23 on `labels` is not allowed, I removed it. I cross checked again;
 
 ```
 (base) [root@hpc01 prometheus-2.41.0.linux-amd64]# /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/promtool check config /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml 
@@ -496,7 +496,7 @@ Checking /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometh
   FAILED: "/home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/alerts/rules.yml" does not point to an existing file
 
 ```
-So I had not given out the absolute path for the `rule_files`. Here's the final draft for the yml file;
+### So I had not given out the absolute path for the `rule_files`. Here's the final draft for the yml file;
 
 ```
 (base) [root@hpc01 prometheus-2.41.0.linux-amd64]# cat prometheus.yml 
@@ -533,7 +533,7 @@ rule_files:
 
 ```
 
-Crosschecking using the promtool;
+### Crosschecking using the promtool;
 
 ```
 (base) [root@hpc01 prometheus-2.41.0.linux-amd64]# /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/promtool check config /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml 
@@ -546,3 +546,68 @@ Checking /etc/prometheus/alerts/rules.yml
 
 ```
 It's a success.
+
+## 11. I started the Prometheus server as a background process;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# nohup ./prometheus > prometheus.log 2>&1 &
+[1] 10808
+
+```
+
+## 12. I then checked the logs on the `prometheus` directory  to confirm everything's alright;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# tail prometheus.log 
+ts=2023-01-31T08:22:47.660Z caller=head.go:612 level=info component=tsdb msg="Replaying WAL, this may take a while"
+ts=2023-01-31T08:22:47.664Z caller=head.go:683 level=info component=tsdb msg="WAL segment loaded" segment=0 maxSegment=0
+ts=2023-01-31T08:22:47.664Z caller=head.go:720 level=info component=tsdb msg="WAL replay completed" checkpoint_replay_duration=949.947µs wal_replay_duration=3.467896ms wbl_replay_duration=325ns total_replay_duration=4.484381ms
+ts=2023-01-31T08:22:47.670Z caller=main.go:1014 level=info fs_type=XFS_SUPER_MAGIC
+ts=2023-01-31T08:22:47.670Z caller=main.go:1017 level=info msg="TSDB started"
+ts=2023-01-31T08:22:47.670Z caller=main.go:1197 level=info msg="Loading configuration file" filename=prometheus.yml
+ts=2023-01-31T08:22:47.733Z caller=main.go:1234 level=info msg="Completed loading of configuration file" filename=prometheus.yml totalDuration=62.404592ms db_storage=11.557µs remote_storage=11.346µs web_handler=2.904µs query_engine=1.912µs scrape=749.385µs scrape_sd=143.877µs notify=266.747µs notify_sd=169.311µs rules=59.839395ms tracing=71.779µs
+ts=2023-01-31T08:22:47.733Z caller=main.go:978 level=info msg="Server is ready to receive web requests."
+ts=2023-01-31T08:22:47.733Z caller=manager.go:953 level=info component="rule manager" msg="Starting rule manager..."
+ts=2023-01-31T08:23:10.545Z caller=notifier.go:532 level=error component=notifier alertmanager=http://localhost:9093/api/v2/alerts count=2 msg="Error sending alert" err="Post \"http://localhost:9093/api/v2/alerts\": dial tcp [::1]:9093: connect: connection refused"
+
+```
+### You can see the error message `Error sending alert` indicates that Prometheus was unable to send alerts to Alertmanager. The reason is that the connection to http://localhost:9093/api/v2/alerts was refused.
+
+### Let's first check if Alertmanager is running;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# systemctl status alertmanager
+● alertmanager.service - Alert Manager
+   Loaded: loaded (/usr/lib/systemd/system/alertmanager.service; enabled; vendor preset: disabled)
+   Active: failed (Result: start-limit) since Thu 2022-11-10 13:54:19 EAT; 2 months 21 days ago
+ Main PID: 3440 (code=exited, status=1/FAILURE)
+
+Warning: Journal has been rotated since unit was started. Log output is incomplete or unavailable.
+
+```
+
+### Yep so Alertmanager was not running. Let's restart it;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# systemctl status alertmanager
+● alertmanager.service - Alert Manager
+   Loaded: loaded (/usr/lib/systemd/system/alertmanager.service; enabled; vendor preset: disabled)
+   Active: active (running) since Tue 2023-01-31 11:25:29 EAT; 3s ago
+ Main PID: 13993 (alertmanager)
+    Tasks: 20
+   Memory: 34.6M
+   CGroup: /system.slice/alertmanager.service
+           └─13993 /usr/local/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/data/alertmanager
+
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.643Z caller=main.go:225 msg="Starting A...7d54)"
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.643Z caller=main.go:226 build_context="...8:55)"
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.649Z caller=cluster.go:184 component=cl...t=9094
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.681Z caller=cluster.go:671 component=cl...val=2s
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.780Z caller=coordinator.go:113 componen...er.yml
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.804Z caller=coordinator.go:126 componen...er.yml
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.813Z caller=main.go:518 msg=Listening a...=:9093
+Jan 31 11:25:29 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:29.813Z caller=tls_config.go:191 msg="TLS ...=false
+Jan 31 11:25:31 hpc01.icipe.org alertmanager[13993]: level=info ts=2023-01-31T08:25:31.683Z caller=cluster.go:696 component=cl...36983s
+Hint: Some lines were ellipsized, use -l to show in full.
+
+```
