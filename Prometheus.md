@@ -418,3 +418,131 @@ node_filesystem_files{device="/dev/mapper/hpc2-apps",fstype="ext4",mountpoint="/
 node_filesystem_files{device="/dev/mapper/hpc2-data",fstype="ext4",mountpoint="/data"} 1.14089984e+08
 .....
 ```
+
+9. I now configured Prometheus manual scraping;
+
+As we want to be able to scrape many hosts, we’ll put the list of targets to scrape in a separate file to make it easier to manage.
+
+First I created a new directory called `targets.d` in `/etc/prometheus`;
+
+```
+(base) [root@hpc01 /]# mkdir /etc/prometheus/targets.d
+```
+
+I then created a new file called `node.yml` with the following contents;
+
+```
+(base) [root@hpc01 targets.d]# cat node.yml 
+- targets:
+    - 'hpc01.icipe.org:9100'
+(base) [root@hpc01 targets.d]# 
+
+```
+I then edited the `prometheus.yml` file under `/home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64` directory, where I downloaded prometheus;
+
+```
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: 'prometheus_master'
+    scrape_interval: 5s
+    static_configs:
+    - targets: ['hpc01.icipe.org:9100']
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    metrics_path: '/prometheus/metrics'
+
+  - job_name: 'node_exporter'
+    static_configs:
+    - targets: ['hpc01.icipe.org:9100']
+    - targets: ['10.0.0.215:9100']
+  - job_name: "node"
+    file_sd_configs:
+    - files:
+       - /etc/prometheus/targets.d/node.yml
+      labels:
+       resin_app: RESIN_APP_ID
+       resin_device_uuid: RESIN_DEVICE_UUID
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - localhost:9093
+rule_files:
+  - 'alerts/rules.yml'
+
+
+```
+
+I then cross checked the YAML file for errors using Prometheus' `promtool`;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/promtool check config /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml 
+Checking /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml
+  FAILED: parsing YAML file /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml: yaml: unmarshal errors:
+  line 23: field labels not found in type file.plain
+
+```
+
+So line 23 on `labels` is not allowed, I removed it. I cross checked again;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/promtool check config /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml 
+Checking /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml
+  FAILED: "/home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/alerts/rules.yml" does not point to an existing file
+
+```
+So I had not given out the absolute path for the `rule_files`. Here's the final draft for the yml file;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# cat prometheus.yml 
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: 'prometheus_master'
+    scrape_interval: 5s
+    static_configs:
+    - targets: ['hpc01.icipe.org:9100']
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    metrics_path: '/prometheus/metrics'
+
+  - job_name: 'node_exporter'
+    static_configs:
+    - targets: ['hpc01.icipe.org:9100']
+    - targets: ['10.0.0.215:9100']
+  - job_name: "node"
+    file_sd_configs:
+    - files:
+       - /etc/prometheus/targets.d/node.yml
+   
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - localhost:9093
+rule_files:
+  - /etc/prometheus/alerts/rules.yml
+
+```
+
+Crosschecking using the promtool;
+
+```
+(base) [root@hpc01 prometheus-2.41.0.linux-amd64]# /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/promtool check config /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml 
+Checking /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml
+  SUCCESS: 1 rule files found
+ SUCCESS: /home/cyndiekamau/logs/prometheus/prometheus-2.41.0.linux-amd64/prometheus.yml is valid prometheus config file syntax
+
+Checking /etc/prometheus/alerts/rules.yml
+  SUCCESS: 32 rules found
+
+```
+It's a success.
